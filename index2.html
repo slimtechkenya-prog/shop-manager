@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shop Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --surface2: #1f2436;
+  --border: #2a3045;
+  --accent: #3b82f6;
+  --accent2: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --text: #e8eaf0;
+  --text2: #8b93a8;
+  --text3: #555e78;
+  --radius: 10px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{font-family:var(--font);cursor:pointer;border:none;outline:none;}
+input,select,textarea{font-family:var(--font);outline:none;}
+
+/* AUTH */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:var(--bg);}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;}
+.auth-logo{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px;}
+.auth-logo span{color:var(--accent);}
+.auth-sub{color:var(--text2);font-size:13px;margin-bottom:32px;}
+.auth-box h2{font-size:18px;font-weight:600;margin-bottom:20px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-size:14px;transition:border-color .2s;}
+.field input:focus{border-color:var(--accent);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;transition:all .15s;cursor:pointer;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-full{width:100%;}
+.btn-sm{padding:7px 14px;font-size:13px;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-success{background:var(--accent2);color:#fff;}
+.btn-warn{background:var(--warn);color:#000;}
+.auth-err{background:#ef44441a;border:1px solid #ef444444;border-radius:8px;padding:10px 14px;font-size:13px;color:#f87171;margin-bottom:16px;display:none;}
+
+/* APP SHELL */
+#app{display:none;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+.logo{font-size:16px;font-weight:700;letter-spacing:-0.5px;}
+.logo span{color:var(--accent);}
+.shop-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text2);font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-pill{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:4px;overflow-x:auto;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-item{padding:12px 14px;font-size:13px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;transition:all .15s;}
+.nav-item:hover{color:var(--text);}
+.nav-item.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* MAIN */
+.main{padding:24px 20px;max-width:1200px;margin:0 auto;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* CARDS */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card+.card{margin-top:16px;}
+
+/* DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:10px;}
+.stat-value{font-size:26px;font-weight:700;letter-spacing:-1px;}
+.stat-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+.stat-accent{color:var(--accent);}
+.stat-warn{color:var(--warn);}
+.stat-success{color:var(--accent2);}
+.stat-danger{color:var(--danger);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);padding:10px 12px;border-bottom:1px solid var(--border);}
+td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;}
+.badge-new{background:#3b82f620;color:#60a5fa;}
+.badge-progress{background:#f59e0b20;color:#fbbf24;}
+.badge-ready{background:#10b98120;color:#34d399;}
+.badge-done{background:#6b728020;color:#9ca3af;}
+.badge-urgent{background:#ef444420;color:#f87171;}
+.badge-normal{background:#3b82f620;color:#60a5fa;}
+.badge-cash{background:#10b98120;color:#34d399;}
+.badge-mpesa{background:#8b5cf620;color:#a78bfa;}
+.badge-owner{background:#f59e0b20;color:#fbbf24;}
+.badge-staff{background:#3b82f620;color:#60a5fa;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:#00000088;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;display:none;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-size:17px;font-weight:700;}
+.modal-close{background:var(--surface2);border:none;color:var(--text2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{color:var(--text);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-row .field{margin-bottom:0;}
+.form-group{margin-bottom:16px;}
+select.inp,input.inp,textarea.inp{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;color:var(--text);font-size:14px;}
+select.inp:focus,input.inp:focus,textarea.inp:focus{border-color:var(--accent);}
+textarea.inp{resize:vertical;min-height:80px;}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* ALERTS */
+.alert{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;}
+.alert-warn{background:#f59e0b18;border:1px solid #f59e0b44;color:#fbbf24;}
+.alert-danger{background:#ef444418;border:1px solid #ef444444;color:#f87171;}
+.alert-success{background:#10b98118;border:1px solid #10b98144;color:#34d399;}
+.alert-info{background:#3b82f618;border:1px solid #3b82f644;color:#60a5fa;}
+
+/* SEARCH/FILTER BAR */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.filters input,.filters select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:13px;min-width:140px;}
+.filters input:focus,.filters select:focus{border-color:var(--accent);}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty p{font-size:13px;}
+
+/* INVENTORY */
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.inv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.inv-card.low{border-color:#f59e0b55;}
+.inv-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.inv-cat{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;}
+.inv-qty{font-size:28px;font-weight:700;font-family:var(--mono);}
+.inv-qty-unit{font-size:12px;color:var(--text2);}
+.inv-actions{display:flex;gap:8px;margin-top:12px;}
+.inv-actions button{flex:1;padding:7px;border-radius:8px;font-size:12px;font-weight:600;}
+
+/* REPORTS */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px;}
+.report-shop{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.report-shop-name{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;}
+.report-revenue{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--accent2);}
+.report-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .main{padding:16px 12px;}
+  .topbar{padding:0 12px;}
+  .nav{padding:0 12px;}
+}
+
+/* UTILS */
+.flex{display:flex;}.gap-2{gap:8px;}.items-center{align-items:center;}
+.mt-1{margin-top:4px;}.mt-2{margin-top:8px;}.mt-3{margin-top:12px;}.mt-4{margin-top:16px;}
+.text-sm{font-size:12px;}.text-muted{color:var(--text2);}
+.font-mono{font-family:var(--mono);}
+.text-right{text-align:right;}
+.w-full{width:100%;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">Shop<span>Manager</span></div>
+    <div class="auth-sub">Main Shop · Slimtech Grafix · Production Unit · Cyber Cafe</div>
+    <h2>Sign in</h2>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="auth-pass" placeholder="••••••••"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="signIn()">Sign in →</button>
+    <p style="font-size:12px;color:var(--text2);margin-top:16px;">First time? Check your email for an invitation link.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">Shop<span>Manager</span></div>
+      <div class="shop-badge" id="shop-badge">Loading…</div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-name" style="display:none"></span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="nav" id="nav">
+    <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
+    <div class="nav-item" data-page="orders" onclick="showPage('orders')">Orders</div>
+    <div class="nav-item" data-page="inventory" onclick="showPage('inventory')">Inventory</div>
+    <div class="nav-item" data-page="payments" onclick="showPage('payments')">Payments</div>
+    <div class="nav-item" data-page="reports" onclick="showPage('reports')">Reports</div>
+    <div class="nav-item" id="staff-nav" data-page="staff" onclick="showPage('staff')" style="display:none">Staff</div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('order-modal')">+ New order</button>
+      </div>
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card"><div class="stat-label">Active Orders</div><div class="stat-value stat-accent" id="s-active">—</div></div>
+        <div class="stat-card"><div class="stat-label">Urgent</div><div class="stat-value stat-danger" id="s-urgent">—</div></div>
+        <div class="stat-card"><div class="stat-label">Ready</div><div class="stat-value stat-success" id="s-ready">—</div></div>
+        <div class="stat-card"><div class="stat-label">Revenue Today</div><div class="stat-value stat-success" id="s-rev">—</div></div>
+        <div class="stat-card"><div class="stat-label">Low Stock</div><div class="stat-value stat-warn" id="s-low">—</div></div>
+        <div class="stat-card"><div class="stat-label">Pending Balance</div><div class="stat-value stat-warn" id="s-bal">—</div></div>
+      </div>
+      <div id="dash-alerts"></div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px;">Recent Orders</div>
+        <div class="table-wrap">
+          <table id="dash-orders-table">
+            <thead><tr><th>Order ID</th><th>Client</th><th>Shop</th><th>Type</th><th>Amount</th><th>Status</th><th>Priority</th></tr></thead>
+            <tbody id="dash-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="page" id="page-orders">
+      <div class="page-header">
+        <div class="page-title">Orders</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('order-modal')">+ New order</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="order-search" placeholder="Search client, ID…" oninput="filterOrders()"/>
+        <select id="order-shop-filter" onchange="filterOrders()" id="order-shop-filter"></select>
+        <select id="order-status-filter" onchange="filterOrders()">
+          <option value="">All statuses</option>
+          <option>New</option><option>In Progress</option><option>Ready</option><option>Collected</option><option>Cancelled</option>
+        </select>
+        <select id="order-priority-filter" onchange="filterOrders()">
+          <option value="">All priorities</option>
+          <option>urgent</option><option>normal</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Client</th><th>Phone</th><th>Shop</th><th>Type</th><th>Amount</th><th>Deposit</th><th>Balance</th><th>Status</th><th>Priority</th><th>Due</th><th>Actions</th></tr></thead>
+            <tbody id="orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div class="page-header">
+        <div class="page-title">Inventory</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('inv-modal')">+ Add item</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="inv-search" placeholder="Search items…" oninput="filterInventory()"/>
+        <select id="inv-shop-filter" onchange="filterInventory()"></select>
+        <select id="inv-cat-filter" onchange="filterInventory()">
+          <option value="">All categories</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);">
+          <input type="checkbox" id="inv-low-only" onchange="filterInventory()"/> Low stock only
+        </label>
+      </div>
+      <div class="inv-grid" id="inv-grid"></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div class="page-header">
+        <div class="page-title">Payments</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('pay-modal')">+ Record payment</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="pay-search" placeholder="Search order ID, client…" oninput="filterPayments()"/>
+        <select id="pay-shop-filter" onchange="filterPayments()"></select>
+        <select id="pay-method-filter" onchange="filterPayments()">
+          <option value="">All methods</option>
+          <option>cash</option><option>mpesa</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Order ID</th><th>Shop</th><th>Amount</th><th>Method</th><th>M-Pesa Ref</th><th>Paid By</th><th>Notes</th></tr></thead>
+            <tbody id="payments-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div class="page-header">
+        <div class="page-title">Reports</div>
+        <div class="flex gap-2 items-center">
+          <input type="date" id="report-from" class="inp" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:13px;"/>
+          <span style="color:var(--text2);">to</span>
+          <input type="date" id="report-to" class="inp" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:13px;"/>
+          <button class="btn btn-primary btn-sm" onclick="loadReports()">Run</button>
+        </div>
+      </div>
+      <div class="report-grid" id="report-shops"></div>
+      <div class="card mt-4">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px;">Payment Breakdown</div>
+        <div id="report-payments-breakdown"></div>
+      </div>
+      <div class="card mt-4">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px;">Orders by Status</div>
+        <div id="report-status-breakdown"></div>
+      </div>
+    </div>
+
+    <!-- STAFF -->
+    <div class="page" id="page-staff">
+      <div class="page-header">
+        <div class="page-title">Staff</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('staff-modal')">+ Add staff member</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Shop</th><th>Role</th><th>User ID</th><th>Actions</th></tr></thead>
+            <tbody id="staff-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card mt-4">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">Add a new staff member</div>
+        <div class="alert alert-info">
+          After filling this form, go to <b>Supabase → Authentication → Users → Invite user</b>, enter the staff email. Once they accept and you have their UUID, run:<br/>
+          <code style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:8px;border-radius:6px;display:block;margin-top:8px;">INSERT INTO staff (id, full_name, shop, role) VALUES ('UUID-HERE', 'Name', SHOP_NUMBER, 'staff');</code>
+          Shop numbers: Main Shop=1, Slimtech Grafix=2, Production Unit=3, Cyber Cafe=4
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- New Order Modal -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="order-modal-title">New Order</div>
+      <button class="modal-close" onclick="closeModal('order-modal')">×</button>
+    </div>
+    <input type="hidden" id="edit-order-id"/>
+    <div class="form-row">
+      <div class="field">
+        <label class="form-label">Client Name *</label>
+        <input class="inp" id="o-client" placeholder="e.g. John Kamau"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Phone</label>
+        <input class="inp" id="o-phone" placeholder="07xxxxxxxx"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Shop *</label>
+        <select class="inp" id="o-shop"></select>
+      </div>
+      <div class="field">
+        <label class="form-label">Service Type *</label>
+        <input class="inp" id="o-type" placeholder="e.g. Printing, Design…"/>
+      </div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Description</label>
+      <textarea class="inp" id="o-desc" placeholder="Details of the job…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label class="form-label">Total Amount (KSh) *</label>
+        <input class="inp" type="number" id="o-amount" placeholder="0"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Deposit (KSh)</label>
+        <input class="inp" type="number" id="o-deposit" placeholder="0"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Payment Method</label>
+        <select class="inp" id="o-method">
+          <option value="cash">Cash</option>
+          <option value="mpesa">M-Pesa</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="form-label">M-Pesa Ref</label>
+        <input class="inp" id="o-mpesa" placeholder="e.g. QJK8X9…"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Priority</label>
+        <select class="inp" id="o-priority">
+          <option value="normal">Normal</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="form-label">Due Date</label>
+        <input class="inp" type="date" id="o-due"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Status</label>
+        <select class="inp" id="o-status">
+          <option>New</option>
+          <option>In Progress</option>
+          <option>Ready</option>
+          <option>Collected</option>
+          <option>Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Notes</label>
+      <textarea class="inp" id="o-notes" placeholder="Any extra notes…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('order-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Save order →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Modal -->
+<div class="modal-overlay" id="inv-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="inv-modal-title">Add Inventory Item</div>
+      <button class="modal-close" onclick="closeModal('inv-modal')">×</button>
+    </div>
+    <input type="hidden" id="edit-inv-id"/>
+    <div class="form-row">
+      <div class="field">
+        <label class="form-label">Item Name *</label>
+        <input class="inp" id="i-name" placeholder="e.g. A4 Paper Ream"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Category *</label>
+        <input class="inp" id="i-cat" placeholder="e.g. Stationery"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Shop *</label>
+        <select class="inp" id="i-shop"></select>
+      </div>
+      <div class="field">
+        <label class="form-label">SKU</label>
+        <input class="inp" id="i-sku" placeholder="Optional code"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Current Qty *</label>
+        <input class="inp" type="number" id="i-qty" placeholder="0"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Low Stock Alert At</label>
+        <input class="inp" type="number" id="i-low" placeholder="5"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Buying Price (KSh)</label>
+        <input class="inp" type="number" id="i-buy" placeholder="0"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Selling Price (KSh)</label>
+        <input class="inp" type="number" id="i-sell" placeholder="0"/>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Unit</label>
+        <input class="inp" id="i-unit" placeholder="pcs, reams, kg…"/>
+      </div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Notes</label>
+      <textarea class="inp" id="i-notes" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('inv-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInventory()">Save item →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Movement Modal -->
+<div class="modal-overlay" id="stock-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="stock-modal-title">Adjust Stock</div>
+      <button class="modal-close" onclick="closeModal('stock-modal')">×</button>
+    </div>
+    <input type="hidden" id="stock-item-id"/>
+    <input type="hidden" id="stock-movement-type"/>
+    <div class="form-group">
+      <label class="form-label">Item</label>
+      <div id="stock-item-name" style="font-size:15px;font-weight:600;padding:10px;background:var(--bg);border-radius:8px;"></div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Quantity *</label>
+      <input class="inp" type="number" id="stock-qty" placeholder="Enter quantity" min="1"/>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Reason</label>
+      <input class="inp" id="stock-reason" placeholder="e.g. New delivery, sold to client…"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('stock-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStockMovement()">Confirm →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Record Payment</div>
+      <button class="modal-close" onclick="closeModal('pay-modal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Order ID *</label>
+      <input class="inp" id="p-order" placeholder="e.g. ORD-20240601-001"/>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Amount (KSh) *</label>
+        <input class="inp" type="number" id="p-amount" placeholder="0"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Method *</label>
+        <select class="inp" id="p-method">
+          <option value="cash">Cash</option>
+          <option value="mpesa">M-Pesa</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">M-Pesa Ref</label>
+        <input class="inp" id="p-mpesa" placeholder="e.g. QJK8X9…"/>
+      </div>
+      <div class="field">
+        <label class="form-label">Paid By</label>
+        <input class="inp" id="p-paidby" placeholder="Client name"/>
+      </div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Notes</label>
+      <textarea class="inp" id="p-notes" placeholder="Any notes…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('pay-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayment()">Save payment →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal-overlay" id="staff-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Staff Member</div>
+      <button class="modal-close" onclick="closeModal('staff-modal')">×</button>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:16px;">
+      After adding here, invite the person from Supabase → Authentication → Users → Invite user.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="inp" id="st-name" placeholder="e.g. Jane Wanjiku"/>
+    </div>
+    <div class="form-row mt-3">
+      <div class="field">
+        <label class="form-label">Shop *</label>
+        <select class="inp" id="st-shop"></select>
+      </div>
+      <div class="field">
+        <label class="form-label">Role</label>
+        <select class="inp" id="st-role">
+          <option value="staff">Staff</option>
+          <option value="owner">Owner</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group mt-3">
+      <label class="form-label">Their UUID (from Supabase after they accept invite)</label>
+      <input class="inp" id="st-uuid" placeholder="Paste UUID here"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaff()">Add staff member →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const SUPABASE_URL = 'https://ppghzgfgivkbjgirzsvw.supabase.co';
+const SUPABASE_KEY = '513fefae-621b-4f95-a2ec-9957531033ad';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const SHOPS = {
+  0: 'All Shops (Owner)',
+  1: 'Main Shop',
+  2: 'Slimtech Grafix',
+  3: 'Production Unit',
+  4: 'Cyber Cafe'
+};
+
+const SHOP_OPTS = [
+  {v:1, l:'Main Shop'},
+  {v:2, l:'Slimtech Grafix'},
+  {v:3, l:'Production Unit'},
+  {v:4, l:'Cyber Cafe'}
+];
+
+let currentUser = null;
+let currentStaff = null;
+let allOrders = [];
+let allInventory = [];
+let allPayments = [];
+let allStaff = [];
+
+// ── AUTH ──
+async function signIn() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  const err = document.getElementById('auth-err');
+  err.style.display = 'none';
+  if (!email || !pass) { showErr('Please enter email and password.'); return; }
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  if (error) { showErr(error.message); return; }
+  await initApp(data.user);
+}
+
+function showErr(msg) {
+  const e = document.getElementById('auth-err');
+  e.textContent = msg; e.style.display = 'block';
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function initApp(user) {
+  currentUser = user;
+  const { data: staff } = await db.from('staff').select('*').eq('id', user.id).single();
+  if (!staff) {
+    showErr('Your account is not linked to a shop. Contact your administrator.');
+    return;
+  }
+  currentStaff = staff;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('shop-badge').textContent = SHOPS[staff.shop] || 'Shop ' + staff.shop;
+  const initials = staff.full_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent = staff.full_name;
+  if (staff.role === 'owner') {
+    document.getElementById('staff-nav').style.display = 'flex';
+  }
+  populateShopSelects();
+  await loadDashboard();
+}
+
+db.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session && !currentUser) {
+    await initApp(session.user);
+  }
+});
+
+// ── SHOP SELECTS ──
+function populateShopSelects() {
+  const isOwner = currentStaff.role === 'owner';
+  const opts = isOwner ? SHOP_OPTS : SHOP_OPTS.filter(s => s.v === currentStaff.shop);
+  const filterOpts = isOwner ? [{v:'',l:'All shops'}, ...SHOP_OPTS] : opts;
+
+  ['o-shop','i-shop','st-shop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = opts.map(s => `<option value="${s.v}">${s.l}</option>`).join('');
+    if (!isOwner) el.value = currentStaff.shop;
+  });
+
+  ['order-shop-filter','inv-shop-filter','pay-shop-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = filterOpts.map(s => `<option value="${s.v}">${s.l}</option>`).join('');
+  });
+}
+
+// ── NAVIGATION ──
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page === 'orders') loadOrders();
+  else if (page === 'inventory') loadInventory();
+  else if (page === 'payments') loadPayments();
+  else if (page === 'reports') initReports();
+  else if (page === 'staff') loadStaff();
+  else if (page === 'dashboard') loadDashboard();
+}
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  let q = db.from('orders').select('*').order('created_at', {ascending:false});
+  if (currentStaff.role !== 'owner') q = q.eq('shop', currentStaff.shop);
+  const { data: orders } = await q;
+  allOrders = orders || [];
+
+  let iq = db.from('inventory').select('*');
+  if (currentStaff.role !== 'owner') iq = iq.eq('shop', currentStaff.shop);
+  const { data: inv } = await iq;
+
+  let pq = db.from('payments').select('*').gte('created_at', todayStart());
+  if (currentStaff.role !== 'owner') pq = pq.eq('shop', currentStaff.shop);
+  const { data: pays } = await pq;
+
+  const active = allOrders.filter(o => !['Collected','Cancelled'].includes(o.status));
+  const urgent = allOrders.filter(o => o.priority === 'urgent' && !['Collected','Cancelled'].includes(o.status));
+  const ready = allOrders.filter(o => o.status === 'Ready');
+  const todayRev = (pays||[]).reduce((s,p) => s + parseFloat(p.amount||0), 0);
+  const lowStock = (inv||[]).filter(i => i.qty <= i.low_stock_at);
+  const pendingBal = allOrders.filter(o => !['Collected','Cancelled'].includes(o.status))
+    .reduce((s,o) => s + (parseFloat(o.amount||0) - parseFloat(o.deposit||0)), 0);
+
+  document.getElementById('s-active').textContent = active.length;
+  document.getElementById('s-urgent').textContent = urgent.length;
+  document.getElementById('s-ready').textContent = ready.length;
+  document.getElementById('s-rev').textContent = 'KSh ' + todayRev.toLocaleString();
+  document.getElementById('s-low').textContent = lowStock.length;
+  document.getElementById('s-bal').textContent = 'KSh ' + pendingBal.toLocaleString();
+
+  // Alerts
+  const alertsEl = document.getElementById('dash-alerts');
+  alertsEl.innerHTML = '';
+  if (urgent.length > 0) alertsEl.innerHTML += `<div class="alert alert-danger">⚡ ${urgent.length} urgent order(s) need attention.</div>`;
+  if (lowStock.length > 0) alertsEl.innerHTML += `<div class="alert alert-warn">⚠️ ${lowStock.length} item(s) are low on stock: ${lowStock.slice(0,3).map(i=>i.name).join(', ')}${lowStock.length>3?'…':''}.</div>`;
+  if (ready.length > 0) alertsEl.innerHTML += `<div class="alert alert-success">✓ ${ready.length} order(s) are ready for collection.</div>`;
+
+  // Recent orders table
+  const tbody = document.getElementById('dash-orders-body');
+  const recent = allOrders.slice(0, 10);
+  tbody.innerHTML = recent.length === 0
+    ? '<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><h3>No orders yet</h3><p>Create your first order to get started.</p></div></td></tr>'
+    : recent.map(o => `<tr>
+        <td class="font-mono" style="font-size:11px;">${o.id}</td>
+        <td><b>${esc(o.client)}</b></td>
+        <td>${SHOPS[o.shop]||o.shop}</td>
+        <td>${esc(o.type)}</td>
+        <td class="font-mono">KSh ${parseFloat(o.amount).toLocaleString()}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td>${priorityBadge(o.priority)}</td>
+      </tr>`).join('');
+}
+
+// ── ORDERS ──
+async function loadOrders() {
+  const tbody = document.getElementById('orders-body');
+  tbody.innerHTML = '<tr><td colspan="12"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
+  let q = db.from('orders').select('*').order('created_at', {ascending:false});
+  if (currentStaff.role !== 'owner') q = q.eq('shop', currentStaff.shop);
+  const { data } = await q;
+  allOrders = data || [];
+  renderOrders(allOrders);
+}
+
+function renderOrders(orders) {
+  const tbody = document.getElementById('orders-body');
+  if (orders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12"><div class="empty"><div class="empty-icon">📋</div><h3>No orders found</h3><p>Try adjusting filters or create a new order.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = orders.map(o => {
+    const bal = parseFloat(o.amount||0) - parseFloat(o.deposit||0);
+    return `<tr>
+      <td class="font-mono" style="font-size:11px;">${o.id}</td>
+      <td><b>${esc(o.client)}</b></td>
+      <td>${esc(o.phone||'—')}</td>
+      <td>${SHOPS[o.shop]||o.shop}</td>
+      <td>${esc(o.type)}</td>
+      <td class="font-mono">KSh ${parseFloat(o.amount).toLocaleString()}</td>
+      <td class="font-mono">KSh ${parseFloat(o.deposit).toLocaleString()}</td>
+      <td class="font-mono ${bal>0?'stat-warn':''}">${bal>0?'KSh '+bal.toLocaleString():'Paid'}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td>${priorityBadge(o.priority)}</td>
+      <td>${o.due_date||'—'}</td>
+      <td>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="editOrder('${o.id}')">Edit</button>
+          <button class="btn btn-sm btn-success" onclick="quickStatus('${o.id}')">→</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterOrders() {
+  const search = document.getElementById('order-search').value.toLowerCase();
+  const shop = document.getElementById('order-shop-filter').value;
+  const status = document.getElementById('order-status-filter').value;
+  const priority = document.getElementById('order-priority-filter').value;
+  const filtered = allOrders.filter(o =>
+    (!search || o.client.toLowerCase().includes(search) || o.id.toLowerCase().includes(search)) &&
+    (!shop || String(o.shop) === String(shop)) &&
+    (!status || o.status === status) &&
+    (!priority || o.priority === priority)
+  );
+  renderOrders(filtered);
+}
+
+async function saveOrder() {
+  const id = document.getElementById('edit-order-id').value;
+  const client = document.getElementById('o-client').value.trim();
+  const shop = document.getElementById('o-shop').value;
+  const type = document.getElementById('o-type').value.trim();
+  const amount = parseFloat(document.getElementById('o-amount').value) || 0;
+  if (!client || !shop || !type) { alert('Please fill in Client, Shop and Service Type.'); return; }
+  const payload = {
+    client, phone: document.getElementById('o-phone').value.trim(),
+    shop: parseInt(shop), type,
+    description: document.getElementById('o-desc').value.trim(),
+    amount, deposit: parseFloat(document.getElementById('o-deposit').value)||0,
+    payment_method: document.getElementById('o-method').value,
+    mpesa_ref: document.getElementById('o-mpesa').value.trim(),
+    priority: document.getElementById('o-priority').value,
+    due_date: document.getElementById('o-due').value || null,
+    status: document.getElementById('o-status').value,
+    notes: document.getElementById('o-notes').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+  if (id) {
+    await db.from('orders').update(payload).eq('id', id);
+  } else {
+    payload.id = generateOrderId();
+    payload.created_by = currentUser.id;
+    await db.from('orders').insert(payload);
+  }
+  closeModal('order-modal');
+  await loadDashboard();
+  if (document.getElementById('page-orders').classList.contains('active')) loadOrders();
+}
+
+async function editOrder(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('order-modal-title').textContent = 'Edit Order';
+  document.getElementById('edit-order-id').value = o.id;
+  document.getElementById('o-client').value = o.client;
+  document.getElementById('o-phone').value = o.phone||'';
+  document.getElementById('o-shop').value = o.shop;
+  document.getElementById('o-type').value = o.type;
+  document.getElementById('o-desc').value = o.description||'';
+  document.getElementById('o-amount').value = o.amount;
+  document.getElementById('o-deposit').value = o.deposit;
+  document.getElementById('o-method').value = o.payment_method||'cash';
+  document.getElementById('o-mpesa').value = o.mpesa_ref||'';
+  document.getElementById('o-priority').value = o.priority||'normal';
+  document.getElementById('o-due').value = o.due_date||'';
+  document.getElementById('o-status').value = o.status;
+  document.getElementById('o-notes').value = o.notes||'';
+  openModal('order-modal');
+}
+
+async function quickStatus(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  const flow = ['New','In Progress','Ready','Collected'];
+  const idx = flow.indexOf(o.status);
+  const next = flow[Math.min(idx+1, flow.length-1)];
+  if (next === o.status) return;
+  await db.from('orders').update({status: next, updated_at: new Date().toISOString()}).eq('id', id);
+  await loadOrders();
+}
+
+// ── INVENTORY ──
+async function loadInventory() {
+  const grid = document.getElementById('inv-grid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  let q = db.from('inventory').select('*').order('name');
+  if (currentStaff.role !== 'owner') q = q.eq('shop', currentStaff.shop);
+  const { data } = await q;
+  allInventory = data || [];
+  // Populate categories
+  const cats = [...new Set(allInventory.map(i => i.category))].sort();
+  const catSel = document.getElementById('inv-cat-filter');
+  catSel.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  renderInventory(allInventory);
+}
+
+function renderInventory(items) {
+  const grid = document.getElementById('inv-grid');
+  if (items.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><h3>No items found</h3><p>Add inventory items to track your stock.</p></div>';
+    return;
+  }
+  grid.innerHTML = items.map(i => {
+    const isLow = i.qty <= i.low_stock_at;
+    return `<div class="inv-card ${isLow?'low':''}">
+      <div class="inv-name">${esc(i.name)} ${isLow?'<span style="color:var(--warn);font-size:11px;">⚠ Low</span>':''}</div>
+      <div class="inv-cat">${esc(i.category)} · ${SHOPS[i.shop]||i.shop}</div>
+      <div class="inv-qty">${i.qty} <span class="inv-qty-unit">${i.unit||'pcs'}</span></div>
+      ${i.selling_price>0?`<div class="text-sm text-muted mt-1">Sell: KSh ${parseFloat(i.selling_price).toLocaleString()}</div>`:''}
+      <div class="inv-actions">
+        <button class="btn btn-success" onclick="openStockModal(${i.id},'add')">+ Add</button>
+        <button class="btn btn-warn" onclick="openStockModal(${i.id},'deduct')">− Deduct</button>
+        <button class="btn btn-ghost" onclick="editInventory(${i.id})">Edit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterInventory() {
+  const search = document.getElementById('inv-search').value.toLowerCase();
+  const shop = document.getElementById('inv-shop-filter').value;
+  const cat = document.getElementById('inv-cat-filter').value;
+  const lowOnly = document.getElementById('inv-low-only').checked;
+  const filtered = allInventory.filter(i =>
+    (!search || i.name.toLowerCase().includes(search) || i.category.toLowerCase().includes(search)) &&
+    (!shop || String(i.shop) === String(shop)) &&
+    (!cat || i.category === cat) &&
+    (!lowOnly || i.qty <= i.low_stock_at)
+  );
+  renderInventory(filtered);
+}
+
+async function saveInventory() {
+  const id = document.getElementById('edit-inv-id').value;
+  const name = document.getElementById('i-name').value.trim();
+  const cat = document.getElementById('i-cat').value.trim();
+  const shop = document.getElementById('i-shop').value;
+  if (!name || !cat || !shop) { alert('Please fill in Name, Category and Shop.'); return; }
+  const payload = {
+    name, category: cat, shop: parseInt(shop),
+    sku: document.getElementById('i-sku').value.trim(),
+    qty: parseInt(document.getElementById('i-qty').value)||0,
+    low_stock_at: parseInt(document.getElementById('i-low').value)||5,
+    buying_price: parseFloat(document.getElementById('i-buy').value)||0,
+    selling_price: parseFloat(document.getElementById('i-sell').value)||0,
+    unit: document.getElementById('i-unit').value.trim()||'pcs',
+    notes: document.getElementById('i-notes').value.trim()
+  };
+  if (id) {
+    await db.from('inventory').update(payload).eq('id', parseInt(id));
+  } else {
+    await db.from('inventory').insert(payload);
+  }
+  closeModal('inv-modal');
+  await loadInventory();
+}
+
+async function editInventory(id) {
+  const i = allInventory.find(x => x.id === id);
+  if (!i) return;
+  document.getElementById('inv-modal-title').textContent = 'Edit Item';
+  document.getElementById('edit-inv-id').value = i.id;
+  document.getElementById('i-name').value = i.name;
+  document.getElementById('i-cat').value = i.category;
+  document.getElementById('i-shop').value = i.shop;
+  document.getElementById('i-sku').value = i.sku||'';
+  document.getElementById('i-qty').value = i.qty;
+  document.getElementById('i-low').value = i.low_stock_at;
+  document.getElementById('i-buy').value = i.buying_price||0;
+  document.getElementById('i-sell').value = i.selling_price||0;
+  document.getElementById('i-unit').value = i.unit||'pcs';
+  document.getElementById('i-notes').value = i.notes||'';
+  openModal('inv-modal');
+}
+
+function openStockModal(itemId, type) {
+  const item = allInventory.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById('stock-item-id').value = itemId;
+  document.getElementById('stock-movement-type').value = type;
+  document.getElementById('stock-modal-title').textContent = type === 'add' ? 'Add Stock' : 'Deduct Stock';
+  document.getElementById('stock-item-name').textContent = item.name + ' (Current: ' + item.qty + ' ' + (item.unit||'pcs') + ')';
+  document.getElementById('stock-qty').value = '';
+  document.getElementById('stock-reason').value = '';
+  openModal('stock-modal');
+}
+
+async function saveStockMovement() {
+  const itemId = parseInt(document.getElementById('stock-item-id').value);
+  const type = document.getElementById('stock-movement-type').value;
+  const qty = parseInt(document.getElementById('stock-qty').value);
+  const reason = document.getElementById('stock-reason').value.trim();
+  if (!qty || qty <= 0) { alert('Please enter a valid quantity.'); return; }
+  const item = allInventory.find(i => i.id === itemId);
+  const newQty = type === 'add' ? item.qty + qty : Math.max(0, item.qty - qty);
+  await db.from('inventory').update({qty: newQty, updated_at: new Date().toISOString()}).eq('id', itemId);
+  await db.from('stock_movements').insert({
+    item_id: itemId, shop: item.shop,
+    movement: type, qty,
+    reason, done_by: currentUser.id
+  });
+  closeModal('stock-modal');
+  await loadInventory();
+}
+
+// ── PAYMENTS ──
+async function loadPayments() {
+  const tbody = document.getElementById('payments-body');
+  tbody.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
+  let q = db.from('payments').select('*').order('created_at', {ascending:false});
+  if (currentStaff.role !== 'owner') q = q.eq('shop', currentStaff.shop);
+  const { data } = await q;
+  allPayments = data || [];
+  renderPayments(allPayments);
+}
+
+function renderPayments(payments) {
+  const tbody = document.getElementById('payments-body');
+  if (payments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">💳</div><h3>No payments yet</h3></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = payments.map(p => `<tr>
+    <td class="text-muted" style="font-size:12px;">${fmtDate(p.created_at)}</td>
+    <td class="font-mono" style="font-size:11px;">${p.order_id||'—'}</td>
+    <td>${SHOPS[p.shop]||p.shop}</td>
+    <td class="font-mono"><b>KSh ${parseFloat(p.amount).toLocaleString()}</b></td>
+    <td><span class="badge badge-${p.method}">${p.method}</span></td>
+    <td class="font-mono text-sm">${p.mpesa_ref||'—'}</td>
+    <td>${esc(p.paid_by||'—')}</td>
+    <td class="text-muted text-sm">${esc(p.notes||'—')}</td>
+  </tr>`).join('');
+}
+
+function filterPayments() {
+  const search = document.getElementById('pay-search').value.toLowerCase();
+  const shop = document.getElementById('pay-shop-filter').value;
+  const method = document.getElementById('pay-method-filter').value;
+  const filtered = allPayments.filter(p =>
+    (!search || (p.order_id||'').toLowerCase().includes(search)) &&
+    (!shop || String(p.shop) === String(shop)) &&
+    (!method || p.method === method)
+  );
+  renderPayments(filtered);
+}
+
+async function savePayment() {
+  const orderId = document.getElementById('p-order').value.trim();
+  const amount = parseFloat(document.getElementById('p-amount').value);
+  const method = document.getElementById('p-method').value;
+  if (!orderId || !amount) { alert('Order ID and amount are required.'); return; }
+  // Get order's shop
+  const { data: order } = await db.from('orders').select('shop').eq('id', orderId).single();
+  if (!order) { alert('Order not found. Please check the Order ID.'); return; }
+  await db.from('payments').insert({
+    order_id: orderId, shop: order.shop,
+    amount, method,
+    mpesa_ref: document.getElementById('p-mpesa').value.trim(),
+    paid_by: document.getElementById('p-paidby').value.trim(),
+    notes: document.getElementById('p-notes').value.trim(),
+    recorded_by: currentUser.id
+  });
+  closeModal('pay-modal');
+  await loadPayments();
+}
+
+// ── REPORTS ──
+function initReports() {
+  const today = new Date().toISOString().slice(0,10);
+  const monthStart = today.slice(0,8) + '01';
+  document.getElementById('report-from').value = monthStart;
+  document.getElementById('report-to').value = today;
+  loadReports();
+}
+
+async function loadReports() {
+  const from = document.getElementById('report-from').value;
+  const to = document.getElementById('report-to').value;
+  if (!from || !to) return;
+  const fromTs = from + 'T00:00:00';
+  const toTs = to + 'T23:59:59';
+
+  let pq = db.from('payments').select('*').gte('created_at', fromTs).lte('created_at', toTs);
+  if (currentStaff.role !== 'owner') pq = pq.eq('shop', currentStaff.shop);
+  const { data: pays } = await pq;
+
+  let oq = db.from('orders').select('*').gte('created_at', fromTs).lte('created_at', toTs);
+  if (currentStaff.role !== 'owner') oq = oq.eq('shop', currentStaff.shop);
+  const { data: ords } = await oq;
+
+  const shops = currentStaff.role === 'owner' ? SHOP_OPTS : SHOP_OPTS.filter(s=>s.v===currentStaff.shop);
+
+  // Revenue by shop
+  document.getElementById('report-shops').innerHTML = shops.map(s => {
+    const shopPays = (pays||[]).filter(p => p.shop === s.v);
+    const rev = shopPays.reduce((sum,p)=>sum+parseFloat(p.amount||0),0);
+    const cash = shopPays.filter(p=>p.method==='cash').reduce((sum,p)=>sum+parseFloat(p.amount||0),0);
+    const mpesa = shopPays.filter(p=>p.method==='mpesa').reduce((sum,p)=>sum+parseFloat(p.amount||0),0);
+    const shopOrds = (ords||[]).filter(o=>o.shop===s.v);
+    return `<div class="report-shop">
+      <div class="report-shop-name">${s.l}</div>
+      <div class="report-revenue">KSh ${rev.toLocaleString()}</div>
+      <div class="report-sub">${shopPays.length} payment(s) · ${shopOrds.length} order(s)</div>
+      <div class="mt-2 text-sm text-muted">Cash: KSh ${cash.toLocaleString()} · M-Pesa: KSh ${mpesa.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+
+  // Payment breakdown
+  const totalCash = (pays||[]).filter(p=>p.method==='cash').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+  const totalMpesa = (pays||[]).filter(p=>p.method==='mpesa').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+  const totalRev = totalCash + totalMpesa;
+  document.getElementById('report-payments-breakdown').innerHTML = `
+    <div class="stats-grid" style="margin:0;">
+      <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value stat-success">KSh ${totalRev.toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-label">Cash</div><div class="stat-value stat-success">KSh ${totalCash.toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-label">M-Pesa</div><div class="stat-value stat-accent">KSh ${totalMpesa.toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">${(pays||[]).length}</div></div>
+    </div>`;
+
+  // Status breakdown
+  const statuses = ['New','In Progress','Ready','Collected','Cancelled'];
+  document.getElementById('report-status-breakdown').innerHTML = `
+    <div class="stats-grid" style="margin:0;">
+      ${statuses.map(st => {
+        const count = (ords||[]).filter(o=>o.status===st).length;
+        return `<div class="stat-card"><div class="stat-label">${st}</div><div class="stat-value">${count}</div></div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── STAFF ──
+async function loadStaff() {
+  const tbody = document.getElementById('staff-body');
+  tbody.innerHTML = '<tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
+  const { data } = await db.from('staff').select('*').order('full_name');
+  allStaff = data || [];
+  tbody.innerHTML = allStaff.length === 0
+    ? '<tr><td colspan="5"><div class="empty"><div class="empty-icon">👥</div><h3>No staff yet</h3></div></td></tr>'
+    : allStaff.map(s => `<tr>
+        <td><b>${esc(s.full_name)}</b></td>
+        <td>${SHOPS[s.shop]||s.shop}</td>
+        <td><span class="badge badge-${s.role}">${s.role}</span></td>
+        <td class="font-mono text-sm text-muted">${s.id}</td>
+        <td>${s.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="removeStaff('${s.id}')">Remove</button>` : '<span class="text-muted text-sm">You</span>'}</td>
+      </tr>`).join('');
+}
+
+async function saveStaff() {
+  const uuid = document.getElementById('st-uuid').value.trim();
+  const name = document.getElementById('st-name').value.trim();
+  const shop = document.getElementById('st-shop').value;
+  const role = document.getElementById('st-role').value;
+  if (!uuid || !name || !shop) { alert('Please fill in all required fields including the UUID.'); return; }
+  await db.from('staff').insert({id: uuid, full_name: name, shop: parseInt(shop), role});
+  closeModal('staff-modal');
+  await loadStaff();
+}
+
+async function removeStaff(id) {
+  if (!confirm('Remove this staff member? They will no longer be able to log in.')) return;
+  await db.from('staff').delete().eq('id', id);
+  await loadStaff();
+}
+
+// ── MODAL HELPERS ──
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'order-modal') {
+    document.getElementById('order-modal-title').textContent = 'New Order';
+    document.getElementById('edit-order-id').value = '';
+    ['o-client','o-phone','o-desc','o-mpesa','o-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('o-amount').value='';
+    document.getElementById('o-deposit').value='';
+    document.getElementById('o-method').value='cash';
+    document.getElementById('o-priority').value='normal';
+    document.getElementById('o-status').value='New';
+    document.getElementById('o-due').value='';
+    if (!document.getElementById('edit-order-id').value)
+      document.getElementById('o-shop').value = currentStaff.shop !== 0 ? currentStaff.shop : SHOP_OPTS[0].v;
+  }
+  if (id === 'inv-modal') {
+    document.getElementById('inv-modal-title').textContent = 'Add Inventory Item';
+    document.getElementById('edit-inv-id').value = '';
+    ['i-name','i-cat','i-sku','i-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('i-qty').value='';
+    document.getElementById('i-low').value='5';
+    document.getElementById('i-buy').value='';
+    document.getElementById('i-sell').value='';
+    document.getElementById('i-unit').value='pcs';
+    if (currentStaff.shop !== 0) document.getElementById('i-shop').value = currentStaff.shop;
+  }
+  if (id === 'pay-modal') {
+    ['p-order','p-amount','p-mpesa','p-paidby','p-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('p-method').value='cash';
+  }
+  if (id === 'staff-modal') {
+    ['st-name','st-uuid'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('st-role').value='staff';
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// ── UTILS ──
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function generateOrderId() {
+  const now = new Date();
+  const d = now.toISOString().slice(0,10).replace(/-/g,'');
+  const rand = Math.floor(Math.random()*9000)+1000;
+  return `ORD-${d}-${rand}`;
+}
+
+function todayStart() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d.toISOString();
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-KE', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function statusBadge(s) {
+  const map = {'New':'badge-new','In Progress':'badge-progress','Ready':'badge-ready','Collected':'badge-done','Cancelled':'badge-done'};
+  return `<span class="badge ${map[s]||'badge-new'}">${s}</span>`;
+}
+
+function priorityBadge(p) {
+  return `<span class="badge badge-${p==='urgent'?'urgent':'normal'}">${p||'normal'}</span>`;
+}
+</script>
+</body>
+</html>
