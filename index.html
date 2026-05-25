@@ -689,16 +689,20 @@ async function signIn() {
   const email = document.getElementById('auth-email').value.trim();
   const pass = document.getElementById('auth-pass').value;
   const err = document.getElementById('auth-err');
+  const btn = document.querySelector('#auth-screen .btn-primary');
   err.style.display = 'none';
   if (!email || !pass) { showErr('Please enter email and password.'); return; }
-  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-  if (error) { showErr(error.message); return; }
-  await initApp(data.user);
-}
-
-function showErr(msg) {
-  const e = document.getElementById('auth-err');
-  e.textContent = msg; e.style.display = 'block';
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  try {
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+    if (error) { showErr(error.message); btn.textContent = 'Sign in →'; btn.disabled = false; return; }
+    await initApp(data.user);
+  } catch(e) {
+    showErr('Connection error: ' + e.message);
+    btn.textContent = 'Sign in →';
+    btn.disabled = false;
+  }
 }
 
 async function signOut() {
