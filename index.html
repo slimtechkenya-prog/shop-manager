@@ -731,13 +731,6 @@ async function initApp(user) {
   await loadDashboard();
 }
 
-db.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session && !currentUser) {
-    await initApp(session.user);
-  }
-});
-Replace the whole block with this:
-javascript
 db.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !currentUser) {
     setTimeout(() => initApp(session.user), 0);
